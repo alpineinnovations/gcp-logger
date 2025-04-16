@@ -14,7 +14,7 @@ A Go logging library that provides structured logging in Google Cloud Platform (
 ## Installation
 
 ```bash
-go get github.com/alpineinnovations/gcp_logger
+go get github.com/alpineinnovations/gcp-logger
 ```
 
 ## Usage
@@ -23,7 +23,7 @@ go get github.com/alpineinnovations/gcp_logger
 
 ```go
 import (
-    "github.com/alpineinnovations/gcp_logger/logger"
+    "github.com/alpineinnovations/gcp-logger/logger"
 )
 
 // Create a new GCP handler with INFO level
@@ -34,7 +34,7 @@ handler := logger.NewGCPHandler("INFO")
 
 ```go
 import (
-    "github.com/alpineinnovations/gcp_logger/web/middlewares"
+    "github.com/alpineinnovations/gcp-logger/web/middlewares"
 )
 
 // Add the logging middleware to your HTTP server
