@@ -2,7 +2,7 @@ package middlewares
 
 import (
 	"fmt"
-	log "github.com/alpineinnovations/gcp_logger/logger"
+	log "github.com/alpineinnovations/gcp-logger/logger"
 	"log/slog"
 	"net/http"
 	"time"
