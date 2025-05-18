@@ -26,8 +26,27 @@ Set `GOPRIVATE` Environment Variable
 export GOPRIVATE=github.com/alpineinnovations/*
 ```
 
+You need to tell Go to not try and verify this private module against the public checksum database.
+```bash
+export GONOSUMDB="github.com/alpineinnovations/*"
+```
+
+
 ```bash
 go get github.com/alpineinnovations/gcp-logger
+```
+
+### In case your SSH requires a passphrase
+
+When 'go get' runs git, git might not have an interactive terminal to ask for the passphrase.
+
+Solution: Add your SSH key to the ssh-agent and provide the passphrase once. The agent will then manage the key for subsequent requests.
+```bash
+# Start the ssh-agent if it's not already running
+eval "$(ssh-agent -s)"
+
+# Add your SSH private key to the agent
+ssh-add ~/.ssh/id_rsa
 ```
 
 ## Usage
