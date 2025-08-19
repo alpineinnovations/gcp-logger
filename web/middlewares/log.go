@@ -2,10 +2,11 @@ package middlewares
 
 import (
 	"fmt"
-	log "github.com/alpineinnovations/gcp-logger/logger"
 	"log/slog"
 	"net/http"
 	"time"
+
+	log "github.com/alpineinnovations/gcp-logger/logger"
 )
 
 func LogMiddleware(next http.Handler) http.Handler {
@@ -15,11 +16,10 @@ func LogMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 		logRequestReceived(logger, r)
 
-		writer := NewLoggingResponseWriter(w)
-		next.ServeHTTP(writer, r)
+		next.ServeHTTP(w, r)
 
 		elapsedTimeInSec := time.Since(start).Seconds()
-		logRequestServed(logger, writer, r, elapsedTimeInSec)
+		logRequestServed(logger, w, r, elapsedTimeInSec)
 	})
 }
 
@@ -36,7 +36,7 @@ func logRequestReceived(logger *slog.Logger, r *http.Request) {
 	)
 }
 
-func logRequestServed(logger *slog.Logger, w *LoggingResponseWriter, r *http.Request, latencyInSec float64) {
+func logRequestServed(logger *slog.Logger, w http.ResponseWriter, r *http.Request, latencyInSec float64) {
 
 	logger.Info("Request.Served",
 		slog.Group(log.KeyHttpRequest,
@@ -47,7 +47,6 @@ func logRequestServed(logger *slog.Logger, w *LoggingResponseWriter, r *http.Req
 			slog.String(log.KeyReferer, r.Referer()),
 			slog.String(log.KeyProtocol, r.Proto),
 			slog.String(log.KeyLatency, fmt.Sprintf("%fs", latencyInSec)),
-			slog.Int(log.KeyStatus, w.StatusCode()),
 		),
 	)
 }
