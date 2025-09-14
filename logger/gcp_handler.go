@@ -1,69 +1,44 @@
 package logger
 
 import (
+	"context"
 	"log/slog"
-	"os"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
-func NewGCPHandler(level string) *slog.JSONHandler {
-	return slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		ReplaceAttr: ReplaceAttr,
-		AddSource:   true,
-		Level:       convertToSlogLevel(level),
-	})
+type GCPHandler struct {
+	handler             slog.Handler
+	includeSourceDetail bool
 }
 
-func ReplaceAttr(groups []string, attr slog.Attr) slog.Attr {
-	noGroups := len(groups) == 0
-
-	switch {
-	case noGroups && attr.Key == slog.TimeKey:
-		return attr
-	case noGroups && attr.Key == slog.LevelKey:
-		logLevel, ok := attr.Value.Any().(slog.Level)
-		if !ok {
-			return attr
-		}
-		return slog.String(attrSeverity, getSeverity(logLevel))
-	case noGroups && attr.Key == slog.SourceKey:
-		source, ok := attr.Value.Any().(*slog.Source)
-		if !ok || source == nil {
-			return attr
-		}
-		return slog.Any(sourceLocationKey, source)
-	case noGroups && attr.Key == slog.MessageKey:
-		return slog.String(attrMessage, attr.Value.String())
-	default:
-		return attr
-	}
+func NewGCPLHandler(handler slog.Handler) *GCPHandler {
+	return &GCPHandler{handler: handler}
 }
 
-func getSeverity(level slog.Level) string {
-	switch level {
-	case slog.LevelDebug:
-		return levelDebug
-	case slog.LevelInfo:
-		return levelInfo
-	case slog.LevelWarn:
-		return levelWarn
-	case slog.LevelError:
-		return levelError
-	default:
-		return levelDefault
-	}
+func (h *GCPHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.handler.Enabled(ctx, level)
 }
 
-func convertToSlogLevel(level string) slog.Level {
-	switch level {
-	case levelDebug:
-		return slog.LevelDebug
-	case levelInfo:
-		return slog.LevelInfo
-	case levelWarn:
-		return slog.LevelWarn
-	case levelError:
-		return slog.LevelError
-	default:
-		return slog.LevelInfo
+func (h *GCPHandler) Handle(ctx context.Context, record slog.Record) error {
+	span := trace.SpanFromContext(ctx)
+	if span.SpanContext().IsValid() {
+		spanCtx := span.SpanContext()
+
+		record.AddAttrs(
+			slog.String("logging.googleapis.com/trace", spanCtx.TraceID().String()),
+			slog.String("logging.googleapis.com/spanId", spanCtx.SpanID().String()),
+			slog.Bool("logging.googleapis.com/trace_sampled", spanCtx.IsSampled()),
+		)
 	}
+
+	return h.handler.Handle(ctx, record)
+}
+
+func (h *GCPHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return NewGCPLHandler(h.handler.WithAttrs(attrs))
+}
+
+func (h *GCPHandler) WithGroup(name string) slog.Handler {
+	return NewGCPLHandler(h.handler.WithGroup(name))
 }
