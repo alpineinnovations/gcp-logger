@@ -2,18 +2,19 @@ package logger
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"go.opentelemetry.io/otel/trace"
 )
 
 type GCPHandler struct {
-	handler             slog.Handler
-	includeSourceDetail bool
+	handler   slog.Handler
+	projectId string
 }
 
-func NewGCPLHandler(handler slog.Handler) *GCPHandler {
-	return &GCPHandler{handler: handler}
+func NewGCPLHandler(handler slog.Handler, projectId string) *GCPHandler {
+	return &GCPHandler{handler: handler, projectId: projectId}
 }
 
 func (h *GCPHandler) Enabled(ctx context.Context, level slog.Level) bool {
@@ -25,9 +26,12 @@ func (h *GCPHandler) Handle(ctx context.Context, record slog.Record) error {
 	if span.SpanContext().IsValid() {
 		spanCtx := span.SpanContext()
 
+		traceId := fmt.Sprintf("projects/%s/traces/%s", h.projectId, spanCtx.TraceID().String())
+		spanId := spanCtx.SpanID().String()
+
 		record.AddAttrs(
-			slog.String("logging.googleapis.com/trace", spanCtx.TraceID().String()),
-			slog.String("logging.googleapis.com/spanId", spanCtx.SpanID().String()),
+			slog.String("logging.googleapis.com/trace", traceId),
+			slog.String("logging.googleapis.com/spanId", spanId),
 			slog.Bool("logging.googleapis.com/trace_sampled", spanCtx.IsSampled()),
 		)
 	}
@@ -36,9 +40,9 @@ func (h *GCPHandler) Handle(ctx context.Context, record slog.Record) error {
 }
 
 func (h *GCPHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return NewGCPLHandler(h.handler.WithAttrs(attrs))
+	return NewGCPLHandler(h.handler.WithAttrs(attrs), h.projectId)
 }
 
 func (h *GCPHandler) WithGroup(name string) slog.Handler {
-	return NewGCPLHandler(h.handler.WithGroup(name))
+	return NewGCPLHandler(h.handler.WithGroup(name), h.projectId)
 }

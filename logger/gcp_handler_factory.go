@@ -5,13 +5,14 @@ import (
 	"os"
 )
 
-func NewGCPHandler(level string) slog.Handler {
+func NewGCPHandler(level, projectId string) slog.Handler {
 	return NewGCPLHandler(
 		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 			ReplaceAttr: ReplaceAttr,
 			AddSource:   true,
 			Level:       ConvertToSlogLevel(level),
 		}),
+		projectId,
 	)
 }
 
